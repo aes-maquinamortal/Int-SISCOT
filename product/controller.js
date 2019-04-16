@@ -1,7 +1,7 @@
 const db = require('../db');
 
 module.exports.createProduct = async (product, supplierId) => {
-    let productId = await _getProduct(product.referencia);
+    let productId = await _getProductId(product.referencia);
     try {
         if(productId === -1) {
             const productModel = await db.query(
@@ -11,16 +11,24 @@ module.exports.createProduct = async (product, supplierId) => {
             productId = productModel.insertId;
         }
 
-        await db.query(
-            'INSERT INTO prov_producto (proveedorid, productoid) VALUES (?, ?)',
+        const provProductModel = await db.query(
+            'SELECT id FROM prov_producto WHERE proveedorid = ? AND productoid = ?',
             [supplierId, productId]
         );
+
+        if(provProductModel.length === 0){
+            await db.query(
+                'INSERT INTO prov_producto (proveedorid, productoid) VALUES (?, ?)',
+                [supplierId, productId]
+            );
+        }
+
     } catch (error) {
         return error.message
     }
 }
 
-_getProduct = async (referencia) => {
+_getProductId = async (referencia) => {
     const productModel = await db.query(
         'SELECT id FROM producto WHERE referencia = ?',
         [referencia]
